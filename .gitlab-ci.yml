@@ -1,0 +1,43 @@
+stages:
+  - export
+  - import
+
+export:project:
+  stage: export
+  image:
+    name: gitlab.metrics.ca:5005/time0/time0-deploy/util:1.6
+    entrypoint: [""]
+  script:
+    - ./scripts/export.sh
+  artifacts:
+    expire_in: 1 hour
+    paths:
+      - qa_runner_project.tar.gz
+  only:
+    - schedules
+  tags: [ docker ]
+
+.template: &import-base
+  stage: import
+  image:
+    name: gitlab.metrics.ca:5005/time0/time0-deploy/util:1.6
+    entrypoint: [""]
+  script: 
+    - ./scripts/import.sh
+  tags: [ docker ]
+  dependencies: [ "export:project" ]
+  only:
+    - schedules
+
+  
+import:nightly:
+  <<: *import-base
+  variables:
+    API_TOKEN: "$GITLAB_NIGHTLY_API_TOKEN"
+    CLUSTER: "nightly"
+
+import:staging:
+  <<: *import-base
+  variables:
+    API_TOKEN: "$GITLAB_STAGING_API_TOKEN"
+    CLUSTER: "staging"
